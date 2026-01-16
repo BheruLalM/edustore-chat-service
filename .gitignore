@@ -1,0 +1,39 @@
+# ======================
+# Node.js / Express
+# ======================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# build output
+dist/
+build/
+
+# ======================
+# Environment variables
+# ======================
+.env
+.env.local
+.env.production
+.env.development
+
+# ======================
+# Logs
+# ======================
+logs/
+*.log
+
+# ======================
+# Cache / Temp
+# ======================
+.cache/
+.tmp/
+
+# ======================
+# OS / Editor
+# ======================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
