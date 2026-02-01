@@ -10,21 +10,41 @@ export const getUsersForSidebar = async (req, res) => {
     try {
         const myId = req.user._id;
 
-        const users = await User.find({ _id: { $ne: myId } })
-            .select("-password");
+        // 1. Find all distinct users who have interacted with current user
+        // distinct senderId where receiverId = myId
+        const senders = await Message.distinct("senderId", { receiverId: myId });
+        // distinct receiverId where senderId = myId
+        const receivers = await Message.distinct("receiverId", { senderId: myId });
 
+        // Combine unique IDs
+        const chattedUserIds = [...new Set([...senders, ...receivers].map(id => id.toString()))];
+
+        // 2. Fetch User Details for these IDs (excluding self, although set logic already helps)
+        const users = await User.find({
+            _id: { $in: chattedUserIds }
+        }).select("-password");
+
+        // 3. Optimized Unseen Messages Count (Aggregation)
+        const unseenCountsRef = await Message.aggregate([
+            {
+                $match: {
+                    receiverId: myId,  // Messages sent TO me
+                    seen: false        // That are NOT seen
+                }
+            },
+            {
+                $group: {
+                    _id: "$senderId", // Group by sender
+                    count: { $sum: 1 } // Count them
+                }
+            }
+        ]);
+
+        // Convert array to object map: { userId: count }
         const unseenMessages = {};
-
-        await Promise.all(
-            users.map(async (user) => {
-                const count = await Message.countDocuments({
-                    senderId: user._id,
-                    receiverId: myId,
-                    seen: false,
-                });
-                if (count > 0) unseenMessages[user._id] = count;
-            })
-        );
+        unseenCountsRef.forEach(item => {
+            unseenMessages[item._id.toString()] = item.count;
+        });
 
         res.json({ success: true, users, unseenMessages });
     } catch (err) {
