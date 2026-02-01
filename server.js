@@ -17,10 +17,13 @@ import jwt from "jsonwebtoken";
 
 // Socket.io with optimized configuration
 export const io = new Server(httpServer, {
-    cors: { origin: "*" },
+    cors: {
+        origin: process.env.FRONTEND_URL || "https://edustore-omega.vercel.app",
+        credentials: true
+    },
     pingTimeout: 60000,
     pingInterval: 25000,
-    transports: ['websocket', 'polling'], // Prefer websocket
+    transports: ['websocket', 'polling'],
 });
 
 // Online users map
@@ -56,13 +59,23 @@ io.on("connection", (socket) => {
 });
 
 // Middlewares
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://edustore-omega.vercel.app";
+
+app.use((req, res, next) => {
+    if (req.method === "OPTIONS") {
+        res.header("Access-Control-Allow-Origin", FRONTEND_URL);
+        res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+        res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        res.header("Access-Control-Allow-Credentials", "true");
+        res.header("Access-Control-Max-Age", "86400");
+        return res.sendStatus(200);
+    }
+    next();
+});
+
 app.use(express.json({ limit: "10mb" }));
 app.use(cors({
-    origin: [
-        "https://edustore-omega.vercel.app",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173"
-    ],
+    origin: FRONTEND_URL,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
